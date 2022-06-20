@@ -22,3 +22,6 @@ go.work
 
 # created by air
 tmp/
+
+# go modules
+go.sum
