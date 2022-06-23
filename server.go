@@ -1,12 +1,5 @@
 package main
 
-import (
-	"github.com/gin-gonic/gin"
-
-	"simple-attendance-manager/api"
-	"simple-attendance-manager/db"
-)
-
 type Attendance struct {
 	Name string `json:"name"`
 	In   string `json:"in"`
@@ -14,10 +7,19 @@ type Attendance struct {
 }
 
 func main() {
-	db.Connect()
+	// err := godotenv.Load(".env")
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
 
-	r := gin.Default()
-	r.GET("/users", api.GetAllUsers)
+	// mysql := db.ConnectMysql()
+	// db_service := db.DBService{DB: mysql}
 
-	r.Run("localhost:3000")
+	// user_repo := repository.UserRepository{DBService: db_service}
+
+	// engine := gin.Default()
+	// api := api.API{UserRepo: user_repo}
+	// api.Route(engine)
+
+	// engine.Run("localhost:3000")
 }

@@ -25,3 +25,6 @@ tmp/
 
 # go modules
 go.sum
+
+# .env
+.env
