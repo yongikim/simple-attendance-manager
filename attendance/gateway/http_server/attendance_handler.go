@@ -1,4 +1,4 @@
-package http
+package http_server
 
 import (
 	"net/http"
@@ -43,14 +43,17 @@ func (h AttendanceHandler) HandleDate(c *gin.Context) {
 	year, err := strconv.Atoi(c.Query("year"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, "year is invalid")
+		return
 	}
 	month, err := strconv.Atoi(c.Query("month"))
 	if err != nil || !(0 < month && month < 13) {
 		c.JSON(http.StatusBadRequest, "month is invalid")
+		return
 	}
 	day, err := strconv.Atoi(c.Query("day"))
 	if err != nil || !(0 < day && day < 32) {
 		c.JSON(http.StatusBadRequest, "day is invalid")
+		return
 	}
 
 	result := h.AttendanceUsecase.GetByDate(usecase.SimpleDate{

@@ -1,5 +1,13 @@
 package main
 
+import (
+	"simple-attendance-manager/attendance/database/in_memory"
+	"simple-attendance-manager/attendance/gateway/http_server"
+	"simple-attendance-manager/attendance/usecase"
+
+	"github.com/gin-gonic/gin"
+)
+
 type Attendance struct {
 	Name string `json:"name"`
 	In   string `json:"in"`
@@ -21,5 +29,13 @@ func main() {
 	// api := api.API{UserRepo: user_repo}
 	// api.Route(engine)
 
-	// engine.Run("localhost:3000")
+	engine := gin.Default()
+	db := in_memory.NewInMemoryDB()
+	attendance_usecase := usecase.AttendanceInteractor{
+		DataAccess: db,
+	}
+	http_server.NewAttendanceHandler(engine, attendance_usecase)
+
+	engine.Run("localhost:3000")
+
 }

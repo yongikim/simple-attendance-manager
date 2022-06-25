@@ -28,8 +28,8 @@ type InMemmoryDB struct {
 	DataBase DataBase
 }
 
-func NewInMemoryDB() *DataBase {
-	return &DataBase{}
+func NewInMemoryDB() *InMemmoryDB {
+	return &InMemmoryDB{}
 }
 
 func (db *InMemmoryDB) CreateAttendance(input entity.Attendance) error {
@@ -170,7 +170,7 @@ func (db *InMemmoryDB) DeleteUser(id entity.UserID) error {
 }
 
 func (db *InMemmoryDB) FindByDate(date usecase.SimpleDate) []entity.Attendance {
-	var attendances []entity.Attendance
+	attendances := []entity.Attendance{}
 	for _, record := range db.DataBase.Attendances {
 		if record.At.Year() == int(date.Year) &&
 			record.At.Month() == time.Month(date.Month) &&
@@ -188,7 +188,7 @@ func (db *InMemmoryDB) FindByDate(date usecase.SimpleDate) []entity.Attendance {
 }
 
 func (db *InMemmoryDB) FindByDateRange(from usecase.SimpleDate, to usecase.SimpleDate) []entity.Attendance {
-	var attendances []entity.Attendance
+	attendances := []entity.Attendance{}
 	for _, record := range db.DataBase.Attendances {
 		from_time := time.Date(int(from.Year), time.Month(from.Month), int(from.Day), 0, 0, 0, 0, time.Local)
 		to_time := time.Date(int(to.Year), time.Month(to.Month), int(to.Day), 0, 0, 0, 0, time.Local)
