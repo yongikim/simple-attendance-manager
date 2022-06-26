@@ -2,23 +2,10 @@ package usecase
 
 import (
 	"simple-attendance-manager/attendance/entity"
+	"simple-attendance-manager/attendance/repository"
+	"simple-attendance-manager/attendance/utility"
 	"time"
 )
-
-// Input Data
-type UserArriveInputData struct {
-	UserID entity.UserID
-	At     time.Time
-}
-type UserLeaveInputData struct {
-	UserID entity.UserID
-	At     time.Time
-}
-type SimpleDate struct {
-	Year  int
-	Month int
-	Day   int
-}
 
 // Input Boundary
 type AttendanceUsecase interface {
@@ -46,7 +33,7 @@ type AttendanceUsecase interface {
 		2. 当該日付の出社記録一覧を取得する
 	*/
 
-	GetByDate(SimpleDate) GetByDateOutput
+	GetByDate(utility.SimpleDate) GetByDateOutput
 
 	/*
 		与えられた期間の出社簿を取得する
@@ -57,53 +44,40 @@ type AttendanceUsecase interface {
 		1. 期間を受け取り、検証する
 		2. 当該期間の出社記録一覧を取得する
 	*/
-	GetByDateRange(from SimpleDate, to SimpleDate) GetByDateRangeOutput
+	GetByDateRange(from utility.SimpleDate, to utility.SimpleDate) GetByDateRangeOutput
 }
 
-// Output Boundary
-type Presenter interface {
-	OnSuccess(interface{})
-	OnError(error)
+// Input Data
+type UserArriveInputData struct {
+	UserID entity.UserID
+	At     time.Time
+}
+type UserLeaveInputData struct {
+	UserID entity.UserID
+	At     time.Time
 }
 
 // Output Data
-type AttendanceOutput struct {
-	Type entity.AttendanceType
-	At   time.Time
-}
-type UserArriveOutput struct {
-	User       UserOutput
-	Attendance AttendanceOutput
-}
-type UserLeaveOutput struct {
-	User       UserOutput
-	Attendance AttendanceOutput
-}
-
-type UserAttendanceOutput struct {
-	User       UserOutput
-	Attendance AttendanceOutput
-}
-type GetByDateOutput []UserAttendanceOutput
-type GetByDateRangeOutput []UserAttendanceOutput
-
-// Data Access Interface (Repository)
-type DataAccess interface {
-	CreateAttendance(entity.Attendance) error
-	CreateUser(UserCreateInputData) (*entity.User, error)
-	FindUserByID(entity.UserID) (*entity.User, error)
-	FindUserByName(string) (*entity.User, error)
-	FindUserByGrade(entity.Grade) (*entity.User, error)
-	UpdateUserName(id entity.UserID, name string) error
-	UpdateUserGrade(id entity.UserID, grade entity.Grade) error
-	DeleteUser(id entity.UserID) error
-	FindByDateWithUser(SimpleDate) []UserAttendanceOutput
-	FindByDateRangeWithUser(from SimpleDate, to SimpleDate) []UserAttendanceOutput
-}
+type UserAttendanceOutput = repository.AttendanceWithUser
+type UserArriveOutput = UserAttendanceOutput
+type UserLeaveOutput = UserAttendanceOutput
+type GetByDateOutput = []UserAttendanceOutput
+type GetByDateRangeOutput = []UserAttendanceOutput
 
 // Interactor
 type AttendanceInteractor struct {
-	DataAccess DataAccess
+	AttendanceRepo repository.AttendanceRepository
+	UserRepo       repository.UserRepository
+}
+
+func NewAttendanceInteractor(
+	a_repo repository.AttendanceRepository,
+	u_repo repository.UserRepository,
+) AttendanceInteractor {
+	return AttendanceInteractor{
+		AttendanceRepo: a_repo,
+		UserRepo:       u_repo,
+	}
 }
 
 func (i AttendanceInteractor) UserArrive(params UserArriveInputData) (*UserArriveOutput, error) {
@@ -112,23 +86,18 @@ func (i AttendanceInteractor) UserArrive(params UserArriveInputData) (*UserArriv
 		Type:   entity.Arrive,
 		At:     params.At,
 	}
-	if err := i.DataAccess.CreateAttendance(attendance); err != nil {
-		return nil, err
-	}
-
-	user, err := i.DataAccess.FindUserByID(params.UserID)
+	user, err := i.UserRepo.FindUserByID(params.UserID)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := i.AttendanceRepo.CreateAttendance(attendance); err != nil {
+		return nil, err
+	}
+
 	output := UserArriveOutput{
-		User: UserOutput{
-			ID: user.ID, Name: user.Name, Grade: user.Grade,
-		},
-		Attendance: AttendanceOutput{
-			At:   params.At,
-			Type: entity.Arrive,
-		},
+		User:       *user,
+		Attendance: attendance,
 	}
 
 	return &output, err
@@ -140,34 +109,32 @@ func (i AttendanceInteractor) UserLeave(params UserLeaveInputData) (*UserLeaveOu
 		Type:   entity.Leave,
 		At:     params.At,
 	}
-	if err := i.DataAccess.CreateAttendance(attendance); err != nil {
-		return nil, err
-	}
-
-	user, err := i.DataAccess.FindUserByID(params.UserID)
+	user, err := i.UserRepo.FindUserByID(params.UserID)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := i.AttendanceRepo.CreateAttendance(attendance); err != nil {
+		return nil, err
+	}
+
 	output := UserLeaveOutput{
-		User: UserOutput{
-			ID: user.ID, Name: user.Name, Grade: user.Grade,
-		},
-		Attendance: AttendanceOutput{
-			At:   params.At,
-			Type: entity.Leave,
-		},
+		User:       *user,
+		Attendance: attendance,
 	}
 
 	return &output, err
 }
 
-func (i AttendanceInteractor) GetByDate(date SimpleDate) GetByDateOutput {
-	attendances := i.DataAccess.FindByDateWithUser(date)
+func (i AttendanceInteractor) GetByDate(date utility.SimpleDate) GetByDateOutput {
+	attendances := i.AttendanceRepo.FindByDateWithUser(date)
 	return attendances
 }
 
-func (i AttendanceInteractor) GetByDateRange(from SimpleDate, to SimpleDate) GetByDateRangeOutput {
-	attendances := i.DataAccess.FindByDateRangeWithUser(from, to)
+func (i AttendanceInteractor) GetByDateRange(
+	from utility.SimpleDate,
+	to utility.SimpleDate,
+) GetByDateRangeOutput {
+	attendances := i.AttendanceRepo.FindByDateRangeWithUser(from, to)
 	return attendances
 }

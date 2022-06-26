@@ -2,7 +2,9 @@ package in_memory
 
 import (
 	"simple-attendance-manager/attendance/entity"
+	"simple-attendance-manager/attendance/repository"
 	"simple-attendance-manager/attendance/usecase"
+	"simple-attendance-manager/attendance/utility"
 	"time"
 )
 
@@ -19,20 +21,28 @@ type AttendanceRecord struct {
 	UserID uint
 }
 
-type DataBase struct {
+type NotFoundError struct {
+	message string
+}
+
+func (e NotFoundError) Error() string {
+	return e.message
+}
+
+type dataBase struct {
 	Users       []UserRecord
 	Attendances []AttendanceRecord
 }
 
-type InMemmoryDB struct {
-	DataBase DataBase
+type InMemoryDB struct {
+	DataBase dataBase
 }
 
-func NewInMemoryDB() *InMemmoryDB {
-	return &InMemmoryDB{}
+func NewInMemoryDB() *InMemoryDB {
+	return &InMemoryDB{}
 }
 
-func (db *InMemmoryDB) CreateAttendance(input entity.Attendance) error {
+func (db *InMemoryDB) CreateAttendance(input entity.Attendance) error {
 	id := len(db.DataBase.Attendances)
 	attendance := AttendanceRecord{
 		ID:     uint(id),
@@ -44,7 +54,7 @@ func (db *InMemmoryDB) CreateAttendance(input entity.Attendance) error {
 	return nil
 }
 
-func (db *InMemmoryDB) CreateUser(input usecase.UserCreateInputData) (*entity.User, error) {
+func (db *InMemoryDB) CreateUser(input repository.UserCreateRequest) (*entity.User, error) {
 	id := len(db.DataBase.Users)
 	user := UserRecord{
 		ID:    uint(id),
@@ -61,13 +71,7 @@ func (db *InMemmoryDB) CreateUser(input usecase.UserCreateInputData) (*entity.Us
 	return &result, nil
 }
 
-type NotFoundError struct{}
-
-func (e NotFoundError) Error() string {
-	return "Not Found"
-}
-
-func (db *InMemmoryDB) FindUserByID(id entity.UserID) (*entity.User, error) {
+func (db *InMemoryDB) FindUserByID(id entity.UserID) (*entity.User, error) {
 	var user *entity.User
 	for _, user_record := range db.DataBase.Users {
 		if entity.UserID(user_record.ID) == id {
@@ -79,13 +83,13 @@ func (db *InMemmoryDB) FindUserByID(id entity.UserID) (*entity.User, error) {
 		}
 	}
 	if user == nil {
-		return nil, NotFoundError{}
+		return nil, NotFoundError{message: "User not found"}
 	}
 
 	return user, nil
 }
 
-func (db *InMemmoryDB) FindUserByName(name string) (*entity.User, error) {
+func (db *InMemoryDB) FindUserByName(name string) (*entity.User, error) {
 	var user *entity.User
 	for _, user_record := range db.DataBase.Users {
 		if user_record.Name == name {
@@ -97,13 +101,13 @@ func (db *InMemmoryDB) FindUserByName(name string) (*entity.User, error) {
 		}
 	}
 	if user == nil {
-		return nil, NotFoundError{}
+		return nil, NotFoundError{message: "User not found"}
 	}
 
 	return user, nil
 }
 
-func (db *InMemmoryDB) FindUserByGrade(grade entity.Grade) (*entity.User, error) {
+func (db *InMemoryDB) FindUserByGrade(grade entity.Grade) (*entity.User, error) {
 	var user *entity.User
 	for _, user_record := range db.DataBase.Users {
 		if entity.Grade(user_record.Grade) == grade {
@@ -121,7 +125,7 @@ func (db *InMemmoryDB) FindUserByGrade(grade entity.Grade) (*entity.User, error)
 	return user, nil
 }
 
-func (db *InMemmoryDB) UpdateUserName(id entity.UserID, name string) error {
+func (db *InMemoryDB) UpdateUserName(id entity.UserID, name string) error {
 	var found bool
 	for i := 0; i < len(db.DataBase.Users); i++ {
 		if db.DataBase.Users[i].ID == uint(id) {
@@ -137,7 +141,7 @@ func (db *InMemmoryDB) UpdateUserName(id entity.UserID, name string) error {
 	return nil
 }
 
-func (db *InMemmoryDB) UpdateUserGrade(id entity.UserID, grade entity.Grade) error {
+func (db *InMemoryDB) UpdateUserGrade(id entity.UserID, grade entity.Grade) error {
 	var found bool
 	for i := 0; i < len(db.DataBase.Users); i++ {
 		if db.DataBase.Users[i].ID == uint(id) {
@@ -153,7 +157,7 @@ func (db *InMemmoryDB) UpdateUserGrade(id entity.UserID, grade entity.Grade) err
 	return nil
 }
 
-func (db *InMemmoryDB) DeleteUser(id entity.UserID) error {
+func (db *InMemoryDB) DeleteUser(id entity.UserID) error {
 	var found bool
 	for i := 0; i < len(db.DataBase.Users); i++ {
 		if db.DataBase.Users[i].ID == uint(id) {
@@ -169,20 +173,22 @@ func (db *InMemmoryDB) DeleteUser(id entity.UserID) error {
 	return nil
 }
 
-func (db *InMemmoryDB) FindByDateWithUser(date usecase.SimpleDate) []usecase.UserAttendanceOutput {
-	user_attendances := &[]usecase.UserAttendanceOutput{}
+func (db *InMemoryDB) FindByDateWithUser(date utility.SimpleDate) []usecase.UserAttendanceOutput {
+	user_attendances := &[]repository.AttendanceWithUser{}
 	for _, record := range db.DataBase.Attendances {
 		if record.At.Year() == int(date.Year) &&
 			record.At.Month() == time.Month(date.Month) &&
 			record.At.Day() == int(date.Day) {
-			attendance := usecase.AttendanceOutput{
-				Type: entity.AttendanceType(record.Type),
-				At:   record.At,
+			attendance := entity.Attendance{
+				ID:     entity.AttendanceID(record.ID),
+				UserID: entity.UserID(record.UserID),
+				Type:   entity.AttendanceType(record.Type),
+				At:     record.At,
 			}
-			var user *usecase.UserOutput
+			var user *entity.User
 			for _, user_record := range db.DataBase.Users {
-				if entity.UserID(user_record.ID) == entity.UserID(record.UserID) {
-					user = &usecase.UserOutput{
+				if user_record.ID == record.UserID {
+					user = &entity.User{
 						ID:    entity.UserID(user_record.ID),
 						Name:  user_record.Name,
 						Grade: entity.Grade(user_record.Grade),
@@ -199,11 +205,11 @@ func (db *InMemmoryDB) FindByDateWithUser(date usecase.SimpleDate) []usecase.Use
 	return *user_attendances
 }
 
-func (db *InMemmoryDB) FindByDateRangeWithUser(
-	from usecase.SimpleDate,
-	to usecase.SimpleDate,
+func (db *InMemoryDB) FindByDateRangeWithUser(
+	from utility.SimpleDate,
+	to utility.SimpleDate,
 ) []usecase.UserAttendanceOutput {
-	user_attendances := &[]usecase.UserAttendanceOutput{}
+	user_attendances := &[]repository.AttendanceWithUser{}
 	for _, record := range db.DataBase.Attendances {
 		from_time := time.Date(
 			int(from.Year),
@@ -226,14 +232,16 @@ func (db *InMemmoryDB) FindByDateRangeWithUser(
 			time.Local,
 		)
 		if record.At.After(from_time) && record.At.Before(to_time) {
-			attendance := usecase.AttendanceOutput{
-				Type: entity.AttendanceType(record.Type),
-				At:   record.At,
+			attendance := entity.Attendance{
+				ID:     entity.AttendanceID(record.ID),
+				UserID: entity.UserID(record.UserID),
+				Type:   entity.AttendanceType(record.Type),
+				At:     record.At,
 			}
-			var user *usecase.UserOutput
+			var user *entity.User
 			for _, user_record := range db.DataBase.Users {
 				if entity.UserID(user_record.ID) == entity.UserID(record.UserID) {
-					user = &usecase.UserOutput{
+					user = &entity.User{
 						ID:    entity.UserID(user_record.ID),
 						Name:  user_record.Name,
 						Grade: entity.Grade(user_record.Grade),
@@ -248,4 +256,34 @@ func (db *InMemmoryDB) FindByDateRangeWithUser(
 		}
 	}
 	return *user_attendances
+}
+
+func (db *InMemoryDB) FindAllUsersWithAttendanceByDate(
+	date utility.SimpleDate,
+) []repository.UserWithAttendances {
+	today := date.Time()
+	result := &[]repository.UserWithAttendances{}
+
+	for _, user_rec := range db.DataBase.Users {
+		atds := &[]entity.Attendance{}
+		for _, atd := range db.DataBase.Attendances {
+			if atd.UserID == user_rec.ID &&
+				atd.At.After(today) {
+				*atds = append(*atds, entity.Attendance{
+					ID:     entity.AttendanceID(atd.ID),
+					UserID: entity.UserID(atd.UserID),
+					Type:   entity.AttendanceType(atd.Type),
+					At:     atd.At,
+				})
+			}
+		}
+		user := entity.User{
+			ID:    entity.UserID(user_rec.ID),
+			Name:  user_rec.Name,
+			Grade: entity.Grade(user_rec.Grade),
+		}
+		*result = append(*result, repository.UserWithAttendances{User: user, Attendances: *atds})
+	}
+
+	return *result
 }

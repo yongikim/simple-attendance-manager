@@ -1,6 +1,10 @@
 package usecase
 
-import "simple-attendance-manager/attendance/entity"
+import (
+	"simple-attendance-manager/attendance/entity"
+	"simple-attendance-manager/attendance/repository"
+	"simple-attendance-manager/attendance/utility"
+)
 
 // Input Boundary
 type UserUsecase interface {
@@ -11,6 +15,7 @@ type UserUsecase interface {
 	UpdateName(UserUpdateNameInputData) error
 	UpdateGrade(UserUpdateGradeInputData) error
 	Delete(UserDeleteInputData) error
+	GetAllUsersWithAttendanceByDate(utility.SimpleDate) []repository.UserWithAttendances
 }
 
 // Input Data
@@ -40,12 +45,21 @@ type UserOutput struct {
 
 // Interactor
 type UserInteractor struct {
-	DataAccess DataAccess
-	Presenter  Presenter
+	UserRepo repository.UserRepository
+}
+
+func NewUserInteractor(u_repo repository.UserRepository) UserInteractor {
+	return UserInteractor{
+		UserRepo: u_repo,
+	}
 }
 
 func (interactor UserInteractor) Create(input UserCreateInputData) (*entity.User, error) {
-	user, err := interactor.DataAccess.CreateUser(input)
+	request := repository.UserCreateRequest{
+		Name:  input.Name,
+		Grade: input.Grade,
+	}
+	user, err := interactor.UserRepo.CreateUser(request)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +68,7 @@ func (interactor UserInteractor) Create(input UserCreateInputData) (*entity.User
 }
 
 func (interactor UserInteractor) GetByID(input UserGetByIDInputData) (*entity.User, error) {
-	user, err := interactor.DataAccess.FindUserByID(input)
+	user, err := interactor.UserRepo.FindUserByID(input)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +77,7 @@ func (interactor UserInteractor) GetByID(input UserGetByIDInputData) (*entity.Us
 }
 
 func (interactor UserInteractor) GetByName(input UserGetByNameInputData) (*entity.User, error) {
-	user, err := interactor.DataAccess.FindUserByName(input)
+	user, err := interactor.UserRepo.FindUserByName(input)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +86,7 @@ func (interactor UserInteractor) GetByName(input UserGetByNameInputData) (*entit
 }
 
 func (interactor UserInteractor) GetByGrade(input UserGetByGradeInputData) (*entity.User, error) {
-	user, err := interactor.DataAccess.FindUserByGrade(input)
+	user, err := interactor.UserRepo.FindUserByGrade(input)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +95,7 @@ func (interactor UserInteractor) GetByGrade(input UserGetByGradeInputData) (*ent
 }
 
 func (interactor UserInteractor) UpdateName(input UserUpdateNameInputData) error {
-	if err := interactor.DataAccess.UpdateUserName(input.ID, input.Name); err != nil {
+	if err := interactor.UserRepo.UpdateUserName(input.ID, input.Name); err != nil {
 		return err
 	}
 
@@ -89,7 +103,7 @@ func (interactor UserInteractor) UpdateName(input UserUpdateNameInputData) error
 }
 
 func (interactor UserInteractor) UpdateGrade(input UserUpdateGradeInputData) error {
-	if err := interactor.DataAccess.UpdateUserGrade(input.ID, input.Grade); err != nil {
+	if err := interactor.UserRepo.UpdateUserGrade(input.ID, input.Grade); err != nil {
 		return err
 	}
 
@@ -97,9 +111,16 @@ func (interactor UserInteractor) UpdateGrade(input UserUpdateGradeInputData) err
 }
 
 func (interactor UserInteractor) Delete(input UserDeleteInputData) error {
-	if err := interactor.DataAccess.DeleteUser(input); err != nil {
+	if err := interactor.UserRepo.DeleteUser(input); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (interactor UserInteractor) GetAllUsersWithAttendanceByDate(
+	date utility.SimpleDate,
+) []repository.UserWithAttendances {
+	result := interactor.UserRepo.FindAllUsersWithAttendanceByDate(date)
+	return result
 }

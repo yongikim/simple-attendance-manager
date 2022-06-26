@@ -8,12 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Attendance struct {
-	Name string `json:"name"`
-	In   string `json:"in"`
-	Out  string `json:"out"`
-}
-
 func main() {
 	// err := godotenv.Load(".env")
 	// if err != nil {
@@ -31,13 +25,11 @@ func main() {
 
 	engine := gin.Default()
 	db := in_memory.NewInMemoryDB()
-	attendance_usecase := usecase.AttendanceInteractor{
-		DataAccess: db,
-	}
-	user_usecase := usecase.UserInteractor{
-		DataAccess: db,
-	}
-	http_server.NewAttendanceHandler(engine, attendance_usecase, user_usecase)
+
+	attendance_interactor := usecase.NewAttendanceInteractor(db, db)
+	user_interactor := usecase.NewUserInteractor(db)
+
+	http_server.SubmitAttendanceHandler(engine, attendance_interactor, user_interactor)
 
 	engine.Run("localhost:3000")
 

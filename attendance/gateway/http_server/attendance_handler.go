@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"simple-attendance-manager/attendance/entity"
 	"simple-attendance-manager/attendance/usecase"
+	"simple-attendance-manager/attendance/utility"
 	"strconv"
 	"time"
 
@@ -15,7 +16,7 @@ type AttendanceHandler struct {
 	UserUsecase       usecase.UserUsecase
 }
 
-func NewAttendanceHandler(
+func SubmitAttendanceHandler(
 	engine *gin.Engine,
 	auc usecase.AttendanceUsecase,
 	uuc usecase.UserUsecase,
@@ -25,6 +26,7 @@ func NewAttendanceHandler(
 		UserUsecase:       uuc,
 	}
 
+	engine.GET("/attendance/today_all_users", handler.HandleTodayAllUsers)
 	engine.GET("/attendance/today", handler.HandleToday)
 	engine.GET("/attendance", handler.HandleDate)
 	engine.POST("/users", handler.HandleCreateUser)
@@ -34,11 +36,21 @@ func NewAttendanceHandler(
 	engine.DELETE("/users/:id", handler.HandleDeleteUser)
 }
 
-// GET "/attendance"
+// GET "/attendance/today_all_users"
+func (h AttendanceHandler) HandleTodayAllUsers(c *gin.Context) {
+	now := time.Now()
+	today := utility.SimpleDateFromTime(now)
+	result :=
+		h.UserUsecase.GetAllUsersWithAttendanceByDate(today)
+
+	c.JSON(http.StatusOK, result)
+}
+
+// GET "/attendance/today"
 func (h AttendanceHandler) HandleToday(c *gin.Context) {
 	// Controller
 	now := time.Now()
-	date := usecase.SimpleDate{
+	date := utility.SimpleDate{
 		Year:  now.Year(),
 		Month: int(now.Month()),
 		Day:   now.Day(),
@@ -68,7 +80,7 @@ func (h AttendanceHandler) HandleDate(c *gin.Context) {
 		return
 	}
 
-	result := h.AttendanceUsecase.GetByDate(usecase.SimpleDate{
+	result := h.AttendanceUsecase.GetByDate(utility.SimpleDate{
 		Year:  year,
 		Month: int(month),
 		Day:   day,
