@@ -23,7 +23,7 @@ func NewAttendanceAPI(db *DataBase) AttendanceAPI {
 	return AttendanceAPI{DataBase: db}
 }
 
-func (db *AttendanceAPI) CreateAttendance(input entity.Attendance) error {
+func (db *AttendanceAPI) Create(input entity.Attendance) error {
 	id := len(db.DataBase.Attendances)
 	attendance := AttendanceRecord{
 		ID:     uint(id),
