@@ -86,12 +86,12 @@ func (i AttendanceInteractor) UserArrive(params UserArriveInputData) (*UserArriv
 		Type:   entity.Arrive,
 		At:     params.At,
 	}
-	user, err := i.UserRepo.FindUserByID(params.UserID)
+	user, err := i.UserRepo.FindByID(params.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := i.AttendanceRepo.CreateAttendance(attendance); err != nil {
+	if err := i.AttendanceRepo.Create(attendance); err != nil {
 		return nil, err
 	}
 
@@ -109,12 +109,12 @@ func (i AttendanceInteractor) UserLeave(params UserLeaveInputData) (*UserLeaveOu
 		Type:   entity.Leave,
 		At:     params.At,
 	}
-	user, err := i.UserRepo.FindUserByID(params.UserID)
+	user, err := i.UserRepo.FindByID(params.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := i.AttendanceRepo.CreateAttendance(attendance); err != nil {
+	if err := i.AttendanceRepo.Create(attendance); err != nil {
 		return nil, err
 	}
 

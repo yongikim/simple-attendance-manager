@@ -7,7 +7,7 @@ import (
 
 // Data Access Interface (Repository)
 type AttendanceRepository interface {
-	CreateAttendance(entity.Attendance) error
+	Create(entity.Attendance) error
 	FindByDateWithUser(utility.SimpleDate) []AttendanceWithUser
 	FindByDateRangeWithUser(from utility.SimpleDate, to utility.SimpleDate) []AttendanceWithUser
 }
