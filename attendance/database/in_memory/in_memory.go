@@ -169,38 +169,83 @@ func (db *InMemmoryDB) DeleteUser(id entity.UserID) error {
 	return nil
 }
 
-func (db *InMemmoryDB) FindByDate(date usecase.SimpleDate) []entity.Attendance {
-	attendances := []entity.Attendance{}
+func (db *InMemmoryDB) FindByDateWithUser(date usecase.SimpleDate) []usecase.UserAttendanceOutput {
+	user_attendances := &[]usecase.UserAttendanceOutput{}
 	for _, record := range db.DataBase.Attendances {
 		if record.At.Year() == int(date.Year) &&
 			record.At.Month() == time.Month(date.Month) &&
 			record.At.Day() == int(date.Day) {
-			attendance := entity.Attendance{
-				ID:     entity.AttendanceID(record.ID),
-				UserID: entity.UserID(record.UserID),
-				Type:   entity.AttendanceType(record.Type),
-				At:     record.At,
+			attendance := usecase.AttendanceOutput{
+				Type: entity.AttendanceType(record.Type),
+				At:   record.At,
 			}
-			attendances = append(attendances, attendance)
+			var user *usecase.UserOutput
+			for _, user_record := range db.DataBase.Users {
+				if entity.UserID(user_record.ID) == entity.UserID(record.UserID) {
+					user = &usecase.UserOutput{
+						ID:    entity.UserID(user_record.ID),
+						Name:  user_record.Name,
+						Grade: entity.Grade(user_record.Grade),
+					}
+				}
+			}
+			user_attendance := usecase.UserAttendanceOutput{
+				Attendance: attendance,
+				User:       *user,
+			}
+			*user_attendances = append(*user_attendances, user_attendance)
 		}
 	}
-	return attendances
+	return *user_attendances
 }
 
-func (db *InMemmoryDB) FindByDateRange(from usecase.SimpleDate, to usecase.SimpleDate) []entity.Attendance {
-	attendances := []entity.Attendance{}
+func (db *InMemmoryDB) FindByDateRangeWithUser(
+	from usecase.SimpleDate,
+	to usecase.SimpleDate,
+) []usecase.UserAttendanceOutput {
+	user_attendances := &[]usecase.UserAttendanceOutput{}
 	for _, record := range db.DataBase.Attendances {
-		from_time := time.Date(int(from.Year), time.Month(from.Month), int(from.Day), 0, 0, 0, 0, time.Local)
-		to_time := time.Date(int(to.Year), time.Month(to.Month), int(to.Day), 0, 0, 0, 0, time.Local)
+		from_time := time.Date(
+			int(from.Year),
+			time.Month(from.Month),
+			int(from.Day),
+			0,
+			0,
+			0,
+			0,
+			time.Local,
+		)
+		to_time := time.Date(
+			int(to.Year),
+			time.Month(to.Month),
+			int(to.Day),
+			0,
+			0,
+			0,
+			0,
+			time.Local,
+		)
 		if record.At.After(from_time) && record.At.Before(to_time) {
-			attendance := entity.Attendance{
-				ID:     entity.AttendanceID(record.ID),
-				UserID: entity.UserID(record.UserID),
-				Type:   entity.AttendanceType(record.Type),
-				At:     record.At,
+			attendance := usecase.AttendanceOutput{
+				Type: entity.AttendanceType(record.Type),
+				At:   record.At,
 			}
-			attendances = append(attendances, attendance)
+			var user *usecase.UserOutput
+			for _, user_record := range db.DataBase.Users {
+				if entity.UserID(user_record.ID) == entity.UserID(record.UserID) {
+					user = &usecase.UserOutput{
+						ID:    entity.UserID(user_record.ID),
+						Name:  user_record.Name,
+						Grade: entity.Grade(user_record.Grade),
+					}
+				}
+			}
+			user_attendance := usecase.UserAttendanceOutput{
+				Attendance: attendance,
+				User:       *user,
+			}
+			*user_attendances = append(*user_attendances, user_attendance)
 		}
 	}
-	return attendances
+	return *user_attendances
 }

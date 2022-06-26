@@ -34,7 +34,10 @@ func main() {
 	attendance_usecase := usecase.AttendanceInteractor{
 		DataAccess: db,
 	}
-	http_server.NewAttendanceHandler(engine, attendance_usecase)
+	user_usecase := usecase.UserInteractor{
+		DataAccess: db,
+	}
+	http_server.NewAttendanceHandler(engine, attendance_usecase, user_usecase)
 
 	engine.Run("localhost:3000")
 

@@ -2,6 +2,7 @@ package http_server
 
 import (
 	"net/http"
+	"simple-attendance-manager/attendance/entity"
 	"simple-attendance-manager/attendance/usecase"
 	"strconv"
 	"time"
@@ -11,15 +12,26 @@ import (
 
 type AttendanceHandler struct {
 	AttendanceUsecase usecase.AttendanceUsecase
+	UserUsecase       usecase.UserUsecase
 }
 
-func NewAttendanceHandler(engine *gin.Engine, auc usecase.AttendanceUsecase) {
+func NewAttendanceHandler(
+	engine *gin.Engine,
+	auc usecase.AttendanceUsecase,
+	uuc usecase.UserUsecase,
+) {
 	handler := AttendanceHandler{
 		AttendanceUsecase: auc,
+		UserUsecase:       uuc,
 	}
 
 	engine.GET("/attendance/today", handler.HandleToday)
 	engine.GET("/attendance", handler.HandleDate)
+	engine.POST("/users", handler.HandleCreateUser)
+	engine.GET("/users/:id", handler.HandleGetUserByID)
+	engine.POST("/users/:id/arrive", handler.HandleUserArrive)
+	engine.POST("/users/:id/leave", handler.HandleUserLeave)
+	engine.DELETE("/users/:id", handler.HandleDeleteUser)
 }
 
 // GET "/attendance"
@@ -27,9 +39,9 @@ func (h AttendanceHandler) HandleToday(c *gin.Context) {
 	// Controller
 	now := time.Now()
 	date := usecase.SimpleDate{
-		Year:  int8(now.Year()),
-		Month: int8(now.Month()),
-		Day:   int8(now.Day()),
+		Year:  now.Year(),
+		Month: int(now.Month()),
+		Day:   now.Day(),
 	}
 	result := h.AttendanceUsecase.GetByDate(date)
 
@@ -57,10 +69,131 @@ func (h AttendanceHandler) HandleDate(c *gin.Context) {
 	}
 
 	result := h.AttendanceUsecase.GetByDate(usecase.SimpleDate{
-		Year:  int8(year),
-		Month: int8(month),
-		Day:   int8(day),
+		Year:  year,
+		Month: int(month),
+		Day:   day,
 	})
 
 	c.JSON(http.StatusOK, result)
+}
+
+// POST /users
+type UserCreateRequest struct {
+	Name  string `json:"name"`
+	Grade int8   `json:"grade"`
+}
+
+func (h AttendanceHandler) HandleCreateUser(c *gin.Context) {
+	var request UserCreateRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	input := usecase.UserCreateInputData{
+		Name:  request.Name,
+		Grade: entity.Grade(request.Grade),
+	}
+	user, err := h.UserUsecase.Create(input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// GET /users/:id
+func (h AttendanceHandler) HandleGetUserByID(c *gin.Context) {
+	id_str := c.Param("id")
+	if id_str == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
+		return
+	}
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.UserUsecase.GetByID(entity.UserID(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// POST /users/:id/arrive
+func (h AttendanceHandler) HandleUserArrive(c *gin.Context) {
+	id_str := c.Param("id")
+	if id_str == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
+		return
+	}
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	input := usecase.UserArriveInputData{
+		UserID: entity.UserID(id),
+		At:     time.Now().Local(),
+	}
+	res, err := h.AttendanceUsecase.UserArrive(input)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+// POST /users/:id/leave
+func (h AttendanceHandler) HandleUserLeave(c *gin.Context) {
+	id_str := c.Param("id")
+	if id_str == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
+		return
+	}
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	input := usecase.UserLeaveInputData{
+		UserID: entity.UserID(id),
+		At:     time.Now().Local(),
+	}
+	res, err := h.AttendanceUsecase.UserLeave(input)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+// DELETE /users/:id
+func (h AttendanceHandler) HandleDeleteUser(c *gin.Context) {
+	id_str := c.Param("id")
+	if id_str == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
+		return
+	}
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err = h.UserUsecase.Delete(entity.UserID(id)); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, "User deleted")
 }

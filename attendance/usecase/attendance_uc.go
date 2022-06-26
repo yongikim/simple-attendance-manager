@@ -15,9 +15,9 @@ type UserLeaveInputData struct {
 	At     time.Time
 }
 type SimpleDate struct {
-	Year  int8
-	Month int8
-	Day   int8
+	Year  int
+	Month int
+	Day   int
 }
 
 // Input Boundary
@@ -80,9 +80,12 @@ type UserLeaveOutput struct {
 	Attendance AttendanceOutput
 }
 
-type GetByDateOutput []entity.Attendance
-
-type GetByDateRangeOutput []entity.Attendance
+type UserAttendanceOutput struct {
+	User       UserOutput
+	Attendance AttendanceOutput
+}
+type GetByDateOutput []UserAttendanceOutput
+type GetByDateRangeOutput []UserAttendanceOutput
 
 // Data Access Interface (Repository)
 type DataAccess interface {
@@ -94,8 +97,8 @@ type DataAccess interface {
 	UpdateUserName(id entity.UserID, name string) error
 	UpdateUserGrade(id entity.UserID, grade entity.Grade) error
 	DeleteUser(id entity.UserID) error
-	FindByDate(SimpleDate) []entity.Attendance
-	FindByDateRange(from SimpleDate, to SimpleDate) []entity.Attendance
+	FindByDateWithUser(SimpleDate) []UserAttendanceOutput
+	FindByDateRangeWithUser(from SimpleDate, to SimpleDate) []UserAttendanceOutput
 }
 
 // Interactor
@@ -160,11 +163,11 @@ func (i AttendanceInteractor) UserLeave(params UserLeaveInputData) (*UserLeaveOu
 }
 
 func (i AttendanceInteractor) GetByDate(date SimpleDate) GetByDateOutput {
-	attendances := i.DataAccess.FindByDate(date)
+	attendances := i.DataAccess.FindByDateWithUser(date)
 	return attendances
 }
 
 func (i AttendanceInteractor) GetByDateRange(from SimpleDate, to SimpleDate) GetByDateRangeOutput {
-	attendances := i.DataAccess.FindByDateRange(from, to)
+	attendances := i.DataAccess.FindByDateRangeWithUser(from, to)
 	return attendances
 }
