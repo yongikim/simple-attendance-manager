@@ -11,17 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type AttendanceHandler struct {
+type Handler struct {
 	AttendanceUsecase usecase.AttendanceUsecase
 	UserUsecase       usecase.UserUsecase
 }
 
-func SubmitAttendanceHandler(
+func SubmitHandlers(
 	engine *gin.Engine,
 	auc usecase.AttendanceUsecase,
 	uuc usecase.UserUsecase,
 ) {
-	handler := AttendanceHandler{
+	handler := Handler{
 		AttendanceUsecase: auc,
 		UserUsecase:       uuc,
 	}
@@ -37,17 +37,17 @@ func SubmitAttendanceHandler(
 }
 
 // GET "/attendance/today_all_users"
-func (h AttendanceHandler) HandleTodayAllUsers(c *gin.Context) {
+func (h Handler) HandleTodayAllUsers(c *gin.Context) {
 	now := time.Now()
 	today := utility.SimpleDateFromTime(now)
 	result :=
-		h.UserUsecase.GetAllUsersWithAttendanceByDate(today)
+		h.UserUsecase.GetAllWithAttendancesByDate(today)
 
 	c.JSON(http.StatusOK, result)
 }
 
 // GET "/attendance/today"
-func (h AttendanceHandler) HandleToday(c *gin.Context) {
+func (h Handler) HandleToday(c *gin.Context) {
 	// Controller
 	now := time.Now()
 	date := utility.SimpleDate{
@@ -62,7 +62,7 @@ func (h AttendanceHandler) HandleToday(c *gin.Context) {
 }
 
 // GET "/attendance?year=2020&month=12&day=1"
-func (h AttendanceHandler) HandleDate(c *gin.Context) {
+func (h Handler) HandleDate(c *gin.Context) {
 	// Date Validation
 	year, err := strconv.Atoi(c.Query("year"))
 	if err != nil {
@@ -95,7 +95,7 @@ type UserCreateRequest struct {
 	Grade int8   `json:"grade"`
 }
 
-func (h AttendanceHandler) HandleCreateUser(c *gin.Context) {
+func (h Handler) HandleCreateUser(c *gin.Context) {
 	var request UserCreateRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -115,7 +115,7 @@ func (h AttendanceHandler) HandleCreateUser(c *gin.Context) {
 }
 
 // GET /users/:id
-func (h AttendanceHandler) HandleGetUserByID(c *gin.Context) {
+func (h Handler) HandleGetUserByID(c *gin.Context) {
 	id_str := c.Param("id")
 	if id_str == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
@@ -138,7 +138,7 @@ func (h AttendanceHandler) HandleGetUserByID(c *gin.Context) {
 }
 
 // POST /users/:id/arrive
-func (h AttendanceHandler) HandleUserArrive(c *gin.Context) {
+func (h Handler) HandleUserArrive(c *gin.Context) {
 	id_str := c.Param("id")
 	if id_str == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
@@ -164,7 +164,7 @@ func (h AttendanceHandler) HandleUserArrive(c *gin.Context) {
 }
 
 // POST /users/:id/leave
-func (h AttendanceHandler) HandleUserLeave(c *gin.Context) {
+func (h Handler) HandleUserLeave(c *gin.Context) {
 	id_str := c.Param("id")
 	if id_str == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})
@@ -190,7 +190,7 @@ func (h AttendanceHandler) HandleUserLeave(c *gin.Context) {
 }
 
 // DELETE /users/:id
-func (h AttendanceHandler) HandleDeleteUser(c *gin.Context) {
+func (h Handler) HandleDeleteUser(c *gin.Context) {
 	id_str := c.Param("id")
 	if id_str == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing parameter: id"})

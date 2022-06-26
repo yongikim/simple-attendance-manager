@@ -91,7 +91,7 @@ func (i AttendanceInteractor) UserArrive(params UserArriveInputData) (*UserArriv
 		return nil, err
 	}
 
-	if err := i.AttendanceRepo.Create(attendance); err != nil {
+	if err := i.AttendanceRepo.CreateAttendance(attendance); err != nil {
 		return nil, err
 	}
 
@@ -114,7 +114,7 @@ func (i AttendanceInteractor) UserLeave(params UserLeaveInputData) (*UserLeaveOu
 		return nil, err
 	}
 
-	if err := i.AttendanceRepo.Create(attendance); err != nil {
+	if err := i.AttendanceRepo.CreateAttendance(attendance); err != nil {
 		return nil, err
 	}
 

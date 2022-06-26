@@ -15,7 +15,7 @@ type UserUsecase interface {
 	UpdateName(UserUpdateNameInputData) error
 	UpdateGrade(UserUpdateGradeInputData) error
 	Delete(UserDeleteInputData) error
-	GetAllUsersWithAttendanceByDate(utility.SimpleDate) []repository.UserWithAttendances
+	GetAllWithAttendancesByDate(utility.SimpleDate) []repository.UserWithAttendances
 }
 
 // Input Data
@@ -118,7 +118,7 @@ func (interactor UserInteractor) Delete(input UserDeleteInputData) error {
 	return nil
 }
 
-func (interactor UserInteractor) GetAllUsersWithAttendanceByDate(
+func (interactor UserInteractor) GetAllWithAttendancesByDate(
 	date utility.SimpleDate,
 ) []repository.UserWithAttendances {
 	result := interactor.UserRepo.FindAllWithAttendancesByDate(date)

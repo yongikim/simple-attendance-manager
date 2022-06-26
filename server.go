@@ -26,10 +26,13 @@ func main() {
 	engine := gin.Default()
 	db := in_memory.NewInMemoryDB()
 
-	attendance_interactor := usecase.NewAttendanceInteractor(db, db)
-	user_interactor := usecase.NewUserInteractor(db)
+	a_repo := in_memory.NewAttendanceAPI(db)
+	u_repo := in_memory.NewUserAPI(db)
 
-	http_server.SubmitAttendanceHandler(engine, attendance_interactor, user_interactor)
+	attendance_interactor := usecase.NewAttendanceInteractor(&a_repo, &u_repo)
+	user_interactor := usecase.NewUserInteractor(&u_repo)
+
+	http_server.SubmitHandlers(engine, attendance_interactor, user_interactor)
 
 	engine.Run("localhost:3000")
 
