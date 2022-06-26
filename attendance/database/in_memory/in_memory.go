@@ -176,9 +176,7 @@ func (db *InMemoryDB) DeleteUser(id entity.UserID) error {
 func (db *InMemoryDB) FindByDateWithUser(date utility.SimpleDate) []usecase.UserAttendanceOutput {
 	user_attendances := &[]repository.AttendanceWithUser{}
 	for _, record := range db.DataBase.Attendances {
-		if record.At.Year() == int(date.Year) &&
-			record.At.Month() == time.Month(date.Month) &&
-			record.At.Day() == int(date.Day) {
+		if record.At.After(date.Time()) {
 			attendance := entity.Attendance{
 				ID:     entity.AttendanceID(record.ID),
 				UserID: entity.UserID(record.UserID),
@@ -211,26 +209,8 @@ func (db *InMemoryDB) FindByDateRangeWithUser(
 ) []usecase.UserAttendanceOutput {
 	user_attendances := &[]repository.AttendanceWithUser{}
 	for _, record := range db.DataBase.Attendances {
-		from_time := time.Date(
-			int(from.Year),
-			time.Month(from.Month),
-			int(from.Day),
-			0,
-			0,
-			0,
-			0,
-			time.Local,
-		)
-		to_time := time.Date(
-			int(to.Year),
-			time.Month(to.Month),
-			int(to.Day),
-			0,
-			0,
-			0,
-			0,
-			time.Local,
-		)
+		from_time := from.Time()
+		to_time := to.Time()
 		if record.At.After(from_time) && record.At.Before(to_time) {
 			attendance := entity.Attendance{
 				ID:     entity.AttendanceID(record.ID),
